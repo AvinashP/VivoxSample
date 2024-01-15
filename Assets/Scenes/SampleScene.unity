@@ -775,7 +775,7 @@ GameObject:
   - component: {fileID: 501367861}
   - component: {fileID: 501367862}
   m_Layer: 5
-  m_Name: SpeakToggle_Mute
+  m_Name: Mute_Listen_Toggle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1523,9 +1523,9 @@ MonoBehaviour:
   UserDisplayName: User
   _statusText: {fileID: 957960404}
   _logText: {fileID: 1710981777}
-  _speakToAllChannelToggle: {fileID: 1436921240}
-  _speakToTeamChannelToggle: {fileID: 1254357286}
-  _muteSpeakerToggle: {fileID: 501367862}
+  _listenToAllChannelToggle: {fileID: 1436921240}
+  _listenToTeamChannelToggle: {fileID: 1254357286}
+  _muteListeningToggle: {fileID: 501367862}
   _talkToAllChannelToggle: {fileID: 58481820}
   _talkToTeamChannelToggle: {fileID: 1202384545}
   _muteMicrophoneToggle: {fileID: 1187770415}
@@ -2195,7 +2195,7 @@ GameObject:
   - component: {fileID: 1254357285}
   - component: {fileID: 1254357286}
   m_Layer: 5
-  m_Name: SpeakToggle_Team
+  m_Name: Listen_to_Team_Toggle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2368,7 +2368,7 @@ GameObject:
   - component: {fileID: 1436921239}
   - component: {fileID: 1436921240}
   m_Layer: 5
-  m_Name: SpeakToggle_All
+  m_Name: Listen_to_All_Toggle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

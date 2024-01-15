@@ -8,6 +8,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
 using UnityEngine.Android;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class VivoxManager : MonoBehaviour
@@ -17,9 +18,9 @@ public class VivoxManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _logText;
     
     // Speaker toggle buttons
-    [SerializeField] private Toggle _speakToAllChannelToggle;
-    [SerializeField] private Toggle _speakToTeamChannelToggle;
-    [SerializeField] private Toggle _muteSpeakerToggle;
+    [SerializeField] private Toggle _listenToAllChannelToggle;
+    [SerializeField] private Toggle _listenToTeamChannelToggle;
+    [SerializeField] private Toggle _muteListeningToggle;
     
     // Microphone toggle buttons
     [SerializeField] private Toggle _talkToAllChannelToggle;
@@ -159,8 +160,8 @@ public class VivoxManager : MonoBehaviour
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
         
-        SetChannelVolume(AllChannelName,  MaxVolume);
         SetChannelVolume(TeamChannelName,  MaxVolume);
+        SetChannelVolume(AllChannelName,  MaxVolume);
     }
     
     public void ListenToTeamButtonTap()
@@ -177,7 +178,7 @@ public class VivoxManager : MonoBehaviour
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
 
-        if (_muteSpeakerToggle.isOn)
+        if (_muteListeningToggle.isOn)
         {
             Debug.Log($"Mute speaker");
             SetChannelVolume(AllChannelName, MinVolume);
@@ -190,9 +191,9 @@ public class VivoxManager : MonoBehaviour
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
         
-        Debug.Log($"Setting channel {channelName} volume to {volume}");
+        Debug.Log($"Setting {channelName.ToUpper()} volume to {volume}");
         VivoxService.Instance.SetChannelVolumeAsync(channelName, volume);
-        _statusText.text = $"Channel {channelName} volume set to {volume}";
+        _statusText.text = $"{channelName.ToUpper()} volume set to {volume}";
     }
     
     #endregion    
@@ -272,9 +273,9 @@ public class VivoxManager : MonoBehaviour
     
     private void ToggleButtons(bool enable)
     {
-        _speakToAllChannelToggle.interactable = enable;
-        _speakToTeamChannelToggle.interactable = enable;
-        _muteSpeakerToggle.interactable = enable;
+        _listenToAllChannelToggle.interactable = enable;
+        _listenToTeamChannelToggle.interactable = enable;
+        _muteListeningToggle.interactable = enable;
         
         _talkToAllChannelToggle.interactable = enable;
         _talkToTeamChannelToggle.interactable = enable;
@@ -303,9 +304,12 @@ public class VivoxManager : MonoBehaviour
         Debug.Log(logString.ToString());
         _logText.SetText(logString.ToString());
     }
-    
+
+    #region Permission related functions
+
     private void RequestMicrophonePermission(Action<string> callback)
     {
+        #if UNITY_ANDROID
         if (Permission.HasUserAuthorizedPermission(Permission.Microphone))
         {
             _permissionCallback = null;
@@ -320,6 +324,10 @@ public class VivoxManager : MonoBehaviour
         callbacks.PermissionGranted += PermissionCallbacks_PermissionGranted;
         callbacks.PermissionDeniedAndDontAskAgain += PermissionCallbacks_PermissionDeniedAndDontAskAgain;
         Permission.RequestUserPermission(Permission.Microphone, callbacks);
+        #else
+        _permissionCallback = null;
+        callback?.Invoke(Permission.Microphone);
+        #endif
     }
 
     private void PermissionCallbacks_PermissionDeniedAndDontAskAgain(string obj)
@@ -339,4 +347,7 @@ public class VivoxManager : MonoBehaviour
         _logText.SetText($"Permission denied: {obj}");
         _permissionCallback?.Invoke(obj);
     }
+
+    #endregion
+    
 }
