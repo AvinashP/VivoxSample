@@ -113,6 +113,8 @@ public class VivoxManager : MonoBehaviour
         await VivoxService.Instance.LogoutAsync();
         timeToLogout = Time.time - timeToLogout;
         _statusText.text = VivoxService.Instance.IsLoggedIn ? "Failed to log out of Vivox" : $"Logged out of Vivox in {timeToLogout:0.00}s";
+        
+        ToggleButtons(false);
     }
 
     #region Join/Leave Channel related functions
@@ -126,7 +128,7 @@ public class VivoxManager : MonoBehaviour
         JoinGroupChannelAsync(AllChannelName);
         
         Debug.Log($"Joining Team channel");
-        JoinGroupChannelAsync(TeamChannelName);
+        await JoinGroupChannelAsync(TeamChannelName);
     }
     
     private async Task JoinGroupChannelAsync(string channelName)
@@ -284,7 +286,7 @@ public class VivoxManager : MonoBehaviour
     
     public void LogActiveChannels()
     {
-        if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+        if(VivoxService.Instance == null)
             return;
         
         StringBuilder logString = new StringBuilder();
