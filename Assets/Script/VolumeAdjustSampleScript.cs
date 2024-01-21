@@ -8,10 +8,9 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
 using UnityEngine.Android;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class VivoxManager : MonoBehaviour
+public class VolumeAdjustSampleScript : MonoBehaviour
 {
     [SerializeField] private string UserDisplayName = "User";
     [SerializeField] private Text _statusText;
