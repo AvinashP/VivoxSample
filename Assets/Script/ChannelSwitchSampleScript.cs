@@ -64,7 +64,7 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         
         await LoginToVivoxAsync();
         
-        await SetupAllChannels();
+        await SetTransmissionMode(TransmissionMode.None, null);
         
         ToggleButtons(true);
     }
@@ -118,20 +118,6 @@ public class ChannelSwitchSampleScript : MonoBehaviour
 
     #region Join/Leave Channel related functions
 
-    private async Task SetupAllChannels()
-    {
-        // Should we await these?
-        SetTransmissionMode(TransmissionMode.None, null);
-        
-        Debug.Log($"Joining all channel");
-        JoinGroupChannelAsync(AllChannelName);
-        
-        Debug.Log($"Joining Team channel");
-        await JoinGroupChannelAsync(TeamChannelName);
-        
-        _listenToAllChannelToggle.isOn = true;
-    }
-    
     private async Task JoinGroupChannelAsync(string channelName)
     {
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
@@ -195,6 +181,8 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
 
+        Debug.Log($"ListenToAllButtonTap {_listenToAllChannelToggle.isOn}");
+        // When listening to all, you are listening to team as well
         if (_listenToAllChannelToggle.isOn)
         {
             JoinGroupChannelAsync(AllChannelName);
@@ -208,11 +196,13 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
 
+        // When listening to team, you are only listening to team
         if (_listenToTeamChannelToggle.isOn)
         {
             JoinGroupChannelAsync(TeamChannelName);
 
-            if (VivoxService.Instance.ActiveChannels.ContainsKey(TeamChannelName) == false)
+            // If you are subscribed to All channel, then leave it
+            if (VivoxService.Instance.ActiveChannels.ContainsKey(AllChannelName))
             {
                 LeaveChannel(AllChannelName);
             }
@@ -245,17 +235,23 @@ public class ChannelSwitchSampleScript : MonoBehaviour
 
     #region Vivox Microphone related functions
 
-    public void TalkToAllButtonTap()
+    public async void TalkToAllButtonTap()
     {
         if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             return;
 
+        // When talking to all, you will have to listen to all as well
         if (_talkToAllChannelToggle.isOn)
         {
+            // First join the channels if not joined already
+            await JoinGroupChannelAsync(AllChannelName);
+            await JoinGroupChannelAsync(TeamChannelName);
+            
+            // Set transmission mode to all
             SetTransmissionMode(TransmissionMode.All, null);
             
             // You gotta listen to all as well. COD design
-            ListenToAllButtonTap();
+            _listenToAllChannelToggle.isOn = true;
         }
     }
     
@@ -266,15 +262,16 @@ public class ChannelSwitchSampleScript : MonoBehaviour
 
         if (_talkToTeamChannelToggle.isOn)
         {
-            Debug.Log($"TalkToTeamButtonTap IsListeningMuted {_muteListeningToggle.isOn}");
-            //await SetTransmissionMode(TransmissionMode.None, null);
+            // First join the channels if not joined already
+            await JoinGroupChannelAsync(TeamChannelName);
+            
+            // Set transmission mode to single
             await SetTransmissionMode(TransmissionMode.Single, TeamChannelName);
             
             // If you are not listening, then you need to listen to team channel
             if (_muteListeningToggle.isOn)
             {
-                ListenToTeamButtonTap();
-                
+                // Setting toggle calls the function. So we dont need to call it again
                 _listenToTeamChannelToggle.isOn = true;
             }
         }
