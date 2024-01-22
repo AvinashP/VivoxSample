@@ -206,6 +206,13 @@ public class ChannelSwitchSampleScript : MonoBehaviour
             {
                 LeaveChannel(AllChannelName);
             }
+
+            // If you are talking to all, then switch to team. COD design
+            if (_talkToAllChannelToggle.isOn)
+            {
+                _talkToAllChannelToggle.isOn = false;
+                _talkToTeamChannelToggle.isOn = true;
+            }
         }
     }
 
@@ -218,6 +225,9 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         {
             Debug.Log($"Mute speaker");
             LeaveAllChannels();
+            
+            // If you are not listening, then you need to mute microphone
+            _muteMicrophoneToggle.isOn = true;
         }
     }
     

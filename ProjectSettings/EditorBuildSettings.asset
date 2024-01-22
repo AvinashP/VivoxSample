@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/HomeScene.unity
     guid: a4304a8af66ff45efb82bcaabe0e0fcd
   - enabled: 1
+    path: Assets/Scenes/ChannelSwitchScene.unity
+    guid: 858c63b75abd44cc7bd408c7e60036c7
+  - enabled: 1
     path: Assets/Scenes/VolumeAdjustScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
   - enabled: 1
