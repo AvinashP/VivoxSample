@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -30,7 +31,7 @@ public class ChannelSwitchSampleScript : MonoBehaviour
     private const string TeamChannelName = "team";
     
     private const int MinVolume = -50;
-    private const int MaxVolume = 40;
+    private const int DefaultVolume = 0;
     
     private List<VivoxParticipant> _allChannelParticipants = new List<VivoxParticipant>();
     
@@ -126,6 +127,7 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         if (VivoxService.Instance.ActiveChannels.ContainsKey(channelName))
         {
             Debug.Log($"Already joined {channelName} channel");
+            SetChannelVolume(channelName, DefaultVolume);
             return;
         }
 
@@ -141,6 +143,8 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         #endif
         timeTaken = Time.time - timeTaken;
         _statusText.text = $"Joined {channelName} in {timeTaken:0.00}s";
+        
+        SetChannelVolume(channelName, DefaultVolume);
     }
 
     private async Task LeaveChannel(string channelName)
@@ -172,6 +176,19 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         _statusText.text = $"Left all channels in {timeTaken:0.00}s";
     }
 
+    private void SetChannelVolume(string channelName, int volume)
+    {
+        if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            return;
+        
+        if(VivoxService.Instance.ActiveChannels.ContainsKey(channelName) == false)
+            return;
+        
+        Debug.Log($"Setting {channelName.ToUpper()} volume to {volume}");
+        VivoxService.Instance.SetChannelVolumeAsync(channelName, volume);
+        _statusText.text = $"{channelName.ToUpper()} volume set to {volume}";
+    }
+    
     #endregion
     
     #region Vivox Speaker related functions
@@ -224,21 +241,13 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         if (_muteListeningToggle.isOn)
         {
             Debug.Log($"Mute speaker");
-            LeaveAllChannels();
+            //LeaveAllChannels();
+            SetChannelVolume(AllChannelName, MinVolume);
+            SetChannelVolume(TeamChannelName, MinVolume);
             
             // If you are not listening, then you need to mute microphone
             _muteMicrophoneToggle.isOn = true;
         }
-    }
-    
-    private void SetChannelVolume(string channelName, int volume)
-    {
-        if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
-            return;
-        
-        Debug.Log($"Setting {channelName.ToUpper()} volume to {volume}");
-        VivoxService.Instance.SetChannelVolumeAsync(channelName, volume);
-        _statusText.text = $"{channelName.ToUpper()} volume set to {volume}";
     }
     
     #endregion    
@@ -356,7 +365,7 @@ public class ChannelSwitchSampleScript : MonoBehaviour
         logString.AppendLine($"Active channels: {VivoxService.Instance.ActiveChannels.Count}");
         foreach (var channel in VivoxService.Instance.ActiveChannels)
         {
-            logString.AppendLine($"Channel: {channel.Key} - Volume {channel.Value.Count}");
+            logString.AppendLine($"Channel: {channel.Key}");
         }
         
         logString.AppendLine($"Transmitting channels: {VivoxService.Instance.TransmittingChannels.Count}");
