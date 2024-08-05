@@ -11,14 +11,19 @@ public class HomeSceneScript : MonoBehaviour
         
     }
 
-    public void VolumeAdjustButtonTap()
+    public void SingleChannelButtonTap()
     {
-        SceneManager.LoadSceneAsync("VolumeAdjustScene");
+        SceneManager.LoadSceneAsync("SingleChannelScene");
     }
     
     public void ChannelSwitchButtonTap()
     {
         SceneManager.LoadSceneAsync("ChannelSwitchScene");
+    }
+    
+    public void VolumeAdjustButtonTap()
+    {
+        SceneManager.LoadSceneAsync("VolumeAdjustScene");
     }
     
     public void VivoxSampleButtonTap()
