@@ -2,9 +2,9 @@
   "dependencies": {
     "com.unity.collab-proxy": "2.2.0",
     "com.unity.feature.development": "1.0.1",
-    "com.unity.services.authentication": "3.2.0",
-    "com.unity.services.vivox": "16.0.1",
-    "com.unity.textmeshpro": "3.0.6",
+    "com.unity.services.authentication": "3.3.3",
+    "com.unity.services.vivox": "16.4.0",
+    "com.unity.textmeshpro": "3.0.9",
     "com.unity.timeline": "1.7.6",
     "com.unity.toolchain.macos-arm64-linux-x86_64": "2.0.3",
     "com.unity.ugui": "1.0.0",
