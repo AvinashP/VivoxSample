@@ -151,7 +151,7 @@ namespace VivoxSamples
 #if UNITY_EDITOR
             await VivoxService.Instance.JoinEchoChannelAsync(channelName, ChatCapability.AudioOnly, null);
 #else
-        await VivoxService.Instance.JoinGroupChannelAsync(channelName, ChatCapability.AudioOnly, null);
+            await VivoxService.Instance.JoinGroupChannelAsync(channelName, ChatCapability.AudioOnly, null);
 #endif
             timeTaken = Time.time - timeTaken;
             _statusText.text = $"Joined {channelName} in {timeTaken:0.00}s";
