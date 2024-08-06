@@ -18,8 +18,9 @@ namespace VivoxSamples
         [SerializeField] private Text _statusText;
         [SerializeField] private TextMeshProUGUI _logText;
     
-        // Speaker toggle buttons
+        // Voice Chat toggle buttons
         [SerializeField] private Toggle _talkToggle;
+        [SerializeField] private Toggle _muteToggle;
     
         private const string TeamChannelName = "team";
     
@@ -60,7 +61,7 @@ namespace VivoxSamples
         
             await LoginToVivoxAsync();
         
-            await SetTransmissionMode(TransmissionMode.None, null);
+            _muteToggle.isOn = true;
         
             ToggleButtons(true);
         }
@@ -140,35 +141,6 @@ namespace VivoxSamples
             SetChannelVolume(channelName, DefaultVolume);
         }
 
-        private async Task LeaveChannel(string channelName)
-        {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
-                return;
-        
-            if(VivoxService.Instance.ActiveChannels.ContainsKey(channelName) == false)
-                return;
-        
-            float timeTaken = Time.time;
-            _statusText.text = $"Leaving {channelName} channel...";
-        
-            await VivoxService.Instance.LeaveChannelAsync(channelName);
-            timeTaken = Time.time - timeTaken;
-            _statusText.text = $"Left {channelName} channel in {timeTaken:0.00}s";
-        }
-    
-        private async Task LeaveAllChannels()
-        {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
-                return;
-        
-            float timeTaken = Time.time;
-            _statusText.text = $"Leaving all channels...";
-            await VivoxService.Instance.LeaveAllChannelsAsync();
-        
-            timeTaken = Time.time - timeTaken;
-            _statusText.text = $"Left all channels in {timeTaken:0.00}s";
-        }
-
         private void SetChannelVolume(string channelName, int volume)
         {
             if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
@@ -188,39 +160,38 @@ namespace VivoxSamples
     
         public async void TalkButtonTap()
         {
+            Debug.Log($"TalkButtonTap - {_talkToggle.isOn}");
             if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
 
             if (_talkToggle.isOn)
             {
+                ToggleButtons(false);
+                
                 // First join the channels if not joined already
                 await JoinGroupChannelAsync(TeamChannelName);
             
                 // Set transmission mode to single
                 await SetTransmissionMode(TransmissionMode.Single, TeamChannelName);
             
-                // If you are not listening, then you need to listen to team channel
-                if (_talkToggle.isOn)
-                {
-                    // Setting toggle calls the function. So we dont need to call it again
-                    _talkToggle.isOn = true;
-                }
-            }
-            else
-            {
-                SetTransmissionMode(TransmissionMode.None, null);
-                _talkToggle.isOn = false;
+                _talkToggle.isOn = true;
+                _muteToggle.isOn = false;
+                
+                ToggleButtons(true);
             }
         }
     
         public void MuteMicrophoneButtonTap()
         {
-            if (_talkToggle.isOn)
+            Debug.Log($"MuteMicrophoneButtonTap - {_muteToggle.isOn}");
+            
+            if (_muteToggle.isOn)
             {
                 // If we want to mute microphone, set transmission mode to none
                 SetTransmissionMode(TransmissionMode.None, null);
                 
                 _talkToggle.isOn = false;
+                _muteToggle.isOn = true;
             }
         }
     
@@ -313,6 +284,7 @@ namespace VivoxSamples
         private void ToggleButtons(bool enable)
         {
             _talkToggle.interactable = enable;
+            _muteToggle.interactable = enable;
         }
     
         public void LogActiveChannels()
