@@ -10,20 +10,21 @@ using UnityEngine;
 using UnityEngine.Android;
 using UnityEngine.UI;
 
-namespace VivoxSamples
+namespace Black.VoiceChat
 {
     public class SingleChannelScript : MonoBehaviour
     {
         [SerializeField] private string UserDisplayName = "User";
+        [SerializeField] private Text _channelNameText;
         [SerializeField] private Text _statusText;
         [SerializeField] private TextMeshProUGUI _logText;
     
         // Voice Chat toggle buttons
         [SerializeField] private Toggle _talkToggle;
         [SerializeField] private Toggle _muteToggle;
-    
-        private const string TeamChannelName = "team";
-    
+
+        private static readonly string TeamChannelName = HomeSceneScript.CurrentTeamChannelName;
+
         private const int MinVolume = -50;
         private const int DefaultVolume = 0;
     
@@ -34,6 +35,8 @@ namespace VivoxSamples
         // Start is called before the first frame update
         void Start()
         {
+            _channelNameText.text = TeamChannelName;
+            
             ToggleButtons(false);
         
             RequestMicrophonePermission(permission =>

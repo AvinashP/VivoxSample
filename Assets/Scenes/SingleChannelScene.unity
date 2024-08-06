@@ -243,6 +243,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   UserDisplayName: User
+  _channelNameText: {fileID: 1235415269}
   _statusText: {fileID: 957960404}
   _logText: {fileID: 1710981777}
   _talkToggle: {fileID: 1254357286}
@@ -1057,7 +1058,7 @@ GameObject:
   - component: {fileID: 1235415270}
   - component: {fileID: 1235415269}
   m_Layer: 5
-  m_Name: SpeakerHeaderText
+  m_Name: ChannelName
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1115,7 +1116,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Voice Chat
+  m_Text: Team_1
 --- !u!222 &1235415270
 CanvasRenderer:
   m_ObjectHideFlags: 0
