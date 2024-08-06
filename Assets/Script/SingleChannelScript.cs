@@ -8,6 +8,7 @@ using Unity.Services.Core;
 using Unity.Services.Vivox;
 using UnityEngine;
 using UnityEngine.Android;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Black.VoiceChat
@@ -56,6 +57,12 @@ namespace Black.VoiceChat
             }
         }
 
+        public void BackButtonTap()
+        {
+            LogoutOfVivoxAsync();
+            SceneManager.LoadSceneAsync("HomeScene");
+        }
+
         #region Vivox Setup
 
         private async void SetupVoiceChatAsync()
@@ -76,19 +83,22 @@ namespace Black.VoiceChat
             {
                 MuteMicrophoneButtonTap();
             }
-            else 
+            else
                 ToggleButtons(true);
         }
 
         async Task InitializeAsync()
         {
-            _statusText.text = "Initializing Unity Services...";
+            SetStatus("Initializing Unity Services...");
 
-            await UnityServices.InitializeAsync();
+            if (UnityServices.Instance.State == ServicesInitializationState.Uninitialized)
+                await UnityServices.InitializeAsync();
 
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            if (AuthenticationService.Instance.IsAuthorized == false)
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-            await VivoxService.Instance.InitializeAsync();
+            if (VivoxService.Instance.IsLoggedIn == false)
+                await VivoxService.Instance.InitializeAsync();
         }
 
         private void SetupVivoxEvents()
@@ -102,17 +112,27 @@ namespace Black.VoiceChat
 
         public async Task LoginToVivoxAsync()
         {
-            _statusText.text = "Logging in to Vivox...";
-            float timeToLogin = Time.time;
-            LoginOptions options = new LoginOptions();
-            options.DisplayName = UserDisplayName;
-            options.EnableTTS = true;
-            await VivoxService.Instance.LoginAsync(options);
+            if (VivoxService.Instance.IsLoggedIn)
+                return;
 
-            timeToLogin = Time.time - timeToLogin;
-            _statusText.text = VivoxService.Instance.IsLoggedIn
-                ? $"Logged in to Vivox in {timeToLogin:0.00}s"
-                : "Failed to log in to Vivox";
+            try
+            {
+                SetStatus("Logging in to Vivox...");
+                float timeToLogin = Time.time;
+                LoginOptions options = new LoginOptions();
+                options.DisplayName = UserDisplayName;
+                options.EnableTTS = true;
+                await VivoxService.Instance.LoginAsync(options);
+
+                timeToLogin = Time.time - timeToLogin;
+                SetStatus(VivoxService.Instance.IsLoggedIn
+                    ? $"Logged in to Vivox in {timeToLogin:0.00}s"
+                    : "Failed to log in to Vivox");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.Message);
+            }
         }
 
         public async void LogoutOfVivoxAsync()
@@ -120,13 +140,13 @@ namespace Black.VoiceChat
             if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
 
-            _statusText.text = "Logging out of Vivox...";
+            SetStatus("Logging out of Vivox...");
             float timeToLogout = Time.time;
             await VivoxService.Instance.LogoutAsync();
             timeToLogout = Time.time - timeToLogout;
-            _statusText.text = VivoxService.Instance.IsLoggedIn
+            SetStatus(VivoxService.Instance.IsLoggedIn
                 ? "Failed to log out of Vivox"
-                : $"Logged out of Vivox in {timeToLogout:0.00}s";
+                : $"Logged out of Vivox in {timeToLogout:0.00}s");
 
             ToggleButtons(false);
         }
@@ -144,7 +164,7 @@ namespace Black.VoiceChat
             }
 
             float timeTaken = Time.time;
-            _statusText.text = $"Joining {channelName} channel...";
+            SetStatus($"Joining {channelName} channel...");
             //ChannelOptions options = new ChannelOptions();
             //options.MakeActiveChannelUponJoining = false;
 
@@ -154,7 +174,7 @@ namespace Black.VoiceChat
             await VivoxService.Instance.JoinGroupChannelAsync(channelName, ChatCapability.AudioOnly, null);
 #endif
             timeTaken = Time.time - timeTaken;
-            _statusText.text = $"Joined {channelName} in {timeTaken:0.00}s";
+            SetStatus($"Joined {channelName} in {timeTaken:0.00}s");
 
             SetChannelVolume(channelName, DefaultVolume);
         }
@@ -169,7 +189,7 @@ namespace Black.VoiceChat
 
             Debug.Log($"Setting {channelName.ToUpper()} volume to {volume}");
             VivoxService.Instance.SetChannelVolumeAsync(channelName, volume);
-            _statusText.text = $"{channelName.ToUpper()} volume set to {volume}";
+            SetStatus($"{channelName.ToUpper()} volume set to {volume}");
         }
 
         #endregion
@@ -182,10 +202,7 @@ namespace Black.VoiceChat
             if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             {
                 ToggleButtons(false);
-                RequestMicrophonePermission(permission =>
-                {
-                    SetupVoiceChatAsync();
-                });
+                RequestMicrophonePermission(permission => { SetupVoiceChatAsync(); });
                 return;
             }
 
@@ -212,10 +229,7 @@ namespace Black.VoiceChat
             if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
             {
                 ToggleButtons(false);
-                RequestMicrophonePermission(permission =>
-                {
-                    SetupVoiceChatAsync();
-                });
+                RequestMicrophonePermission(permission => { SetupVoiceChatAsync(); });
                 return;
             }
 
@@ -234,10 +248,23 @@ namespace Black.VoiceChat
             if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
 
-            _statusText.text = $"Setting TransmissionMode to {mode}  in {channelName} channel...";
+            SetStatus($"Setting TransmissionMode to {mode}  in {channelName} channel...");
             await VivoxService.Instance.SetChannelTransmissionModeAsync(mode, channelName);
             //VivoxService.Instance.MuteInputDevice();
-            _statusText.text = $"TransmissionMode set to {mode} in {channelName}";
+            SetStatus($"TransmissionMode set to {mode} in {channelName}");
+        }
+
+        private async Task LeaveAllChannels()
+        {
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+                return;
+
+            float timeTaken = Time.time;
+            SetStatus($"Leaving all channels...");
+            await VivoxService.Instance.LeaveAllChannelsAsync();
+
+            timeTaken = Time.time - timeTaken;
+            SetStatus($"Left all channels in {timeTaken:0.00}s");
         }
 
         #endregion
@@ -246,13 +273,13 @@ namespace Black.VoiceChat
 
         private void VivoxServiceOnParticipantAddedToChannel(VivoxParticipant obj)
         {
-            _statusText.text = $"Participant {obj.DisplayName} joined channel {obj.ChannelName}";
+            SetStatus($"Participant {obj.DisplayName} joined channel {obj.ChannelName}");
             _allChannelParticipants.Add(obj);
         }
 
         private void VivoxServiceOnParticipantRemovedFromChannel(VivoxParticipant obj)
         {
-            _statusText.text = $"Participant {obj.DisplayName} left channel {obj.ChannelName}";
+            SetStatus($"Participant {obj.DisplayName} left channel {obj.ChannelName}");
             _allChannelParticipants.Remove(obj);
         }
 
@@ -317,6 +344,9 @@ namespace Black.VoiceChat
 
         private void ToggleButtons(bool enable)
         {
+            if(_talkToggle == null || _muteToggle == null)
+                return;
+            
             _talkToggle.interactable = enable;
             _muteToggle.interactable = enable;
         }
@@ -342,6 +372,12 @@ namespace Black.VoiceChat
 
             Debug.Log(logString.ToString());
             _logText.SetText(logString.ToString());
+        }
+
+        private void SetStatus(string statusText)
+        {
+            if (_statusText == null) return;
+            _statusText.text = statusText;
         }
 
         #endregion
