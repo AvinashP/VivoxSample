@@ -18,63 +18,74 @@ namespace Black.VoiceChat
         [SerializeField] private Text _channelNameText;
         [SerializeField] private Text _statusText;
         [SerializeField] private TextMeshProUGUI _logText;
-    
+
         // Voice Chat toggle buttons
         [SerializeField] private Toggle _talkToggle;
         [SerializeField] private Toggle _muteToggle;
 
         private static readonly string TeamChannelName = HomeSceneScript.CurrentTeamChannelName;
 
-        private const int MinVolume = -50;
         private const int DefaultVolume = 0;
-    
+
         private List<VivoxParticipant> _allChannelParticipants = new List<VivoxParticipant>();
-    
+
         private Action<string> _permissionCallback;
-    
+
         // Start is called before the first frame update
         void Start()
         {
             _channelNameText.text = TeamChannelName;
-            
-            ToggleButtons(false);
-        
-            RequestMicrophonePermission(permission =>
+
+            if (HomeSceneScript.AskPermissionOnLoad)
             {
-                SetupVoiceChatAsync();
-            });
+                ToggleButtons(false);
+
+                RequestMicrophonePermission(permission => { SetupVoiceChatAsync(); });
+            }
         }
-    
+
         private void OnDestroy()
         {
-            VivoxService.Instance.LoggedIn -= VivoxServiceOnLoggedIn;
-            VivoxService.Instance.LoggedOut -= VivoxServiceOnLoggedOut;
-        
-            VivoxService.Instance.ParticipantAddedToChannel -= VivoxServiceOnParticipantAddedToChannel;
-            VivoxService.Instance.ParticipantRemovedFromChannel -= VivoxServiceOnParticipantRemovedFromChannel;
+            if (VivoxService.Instance != null)
+            {
+                VivoxService.Instance.LoggedIn -= VivoxServiceOnLoggedIn;
+                VivoxService.Instance.LoggedOut -= VivoxServiceOnLoggedOut;
+
+                VivoxService.Instance.ParticipantAddedToChannel -= VivoxServiceOnParticipantAddedToChannel;
+                VivoxService.Instance.ParticipantRemovedFromChannel -= VivoxServiceOnParticipantRemovedFromChannel;
+            }
         }
-    
+
         #region Vivox Setup
-        
+
         private async void SetupVoiceChatAsync()
         {
             await InitializeAsync();
-        
+
             SetupVivoxEvents();
-        
+
             await LoginToVivoxAsync();
-        
-            _muteToggle.isOn = true;
-        
-            ToggleButtons(true);
+
+            await SetTransmissionMode(TransmissionMode.None, null);
+
+            if (_talkToggle.isOn)
+            {
+                TalkButtonTap();
+            }
+            else if (_muteToggle.isOn)
+            {
+                MuteMicrophoneButtonTap();
+            }
+            else 
+                ToggleButtons(true);
         }
 
         async Task InitializeAsync()
         {
             _statusText.text = "Initializing Unity Services...";
-        
+
             await UnityServices.InitializeAsync();
-        
+
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
             await VivoxService.Instance.InitializeAsync();
@@ -84,7 +95,7 @@ namespace Black.VoiceChat
         {
             VivoxService.Instance.LoggedIn += VivoxServiceOnLoggedIn;
             VivoxService.Instance.LoggedOut += VivoxServiceOnLoggedOut;
-        
+
             VivoxService.Instance.ParticipantAddedToChannel += VivoxServiceOnParticipantAddedToChannel;
             VivoxService.Instance.ParticipantRemovedFromChannel += VivoxServiceOnParticipantRemovedFromChannel;
         }
@@ -97,28 +108,32 @@ namespace Black.VoiceChat
             options.DisplayName = UserDisplayName;
             options.EnableTTS = true;
             await VivoxService.Instance.LoginAsync(options);
-        
+
             timeToLogin = Time.time - timeToLogin;
-            _statusText.text = VivoxService.Instance.IsLoggedIn ? $"Logged in to Vivox in {timeToLogin:0.00}s" : "Failed to log in to Vivox";
+            _statusText.text = VivoxService.Instance.IsLoggedIn
+                ? $"Logged in to Vivox in {timeToLogin:0.00}s"
+                : "Failed to log in to Vivox";
         }
-    
-        public async void LogoutOfVivoxAsync ()
+
+        public async void LogoutOfVivoxAsync()
         {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
-        
+
             _statusText.text = "Logging out of Vivox...";
             float timeToLogout = Time.time;
             await VivoxService.Instance.LogoutAsync();
             timeToLogout = Time.time - timeToLogout;
-            _statusText.text = VivoxService.Instance.IsLoggedIn ? "Failed to log out of Vivox" : $"Logged out of Vivox in {timeToLogout:0.00}s";
-        
+            _statusText.text = VivoxService.Instance.IsLoggedIn
+                ? "Failed to log out of Vivox"
+                : $"Logged out of Vivox in {timeToLogout:0.00}s";
+
             ToggleButtons(false);
         }
-        
+
         private async Task JoinGroupChannelAsync(string channelName)
         {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
 
             if (VivoxService.Instance.ActiveChannels.ContainsKey(channelName))
@@ -132,7 +147,7 @@ namespace Black.VoiceChat
             _statusText.text = $"Joining {channelName} channel...";
             //ChannelOptions options = new ChannelOptions();
             //options.MakeActiveChannelUponJoining = false;
-        
+
 #if UNITY_EDITOR
             await VivoxService.Instance.JoinEchoChannelAsync(channelName, ChatCapability.AudioOnly, null);
 #else
@@ -140,69 +155,85 @@ namespace Black.VoiceChat
 #endif
             timeTaken = Time.time - timeTaken;
             _statusText.text = $"Joined {channelName} in {timeTaken:0.00}s";
-        
+
             SetChannelVolume(channelName, DefaultVolume);
         }
 
         private void SetChannelVolume(string channelName, int volume)
         {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
-        
-            if(VivoxService.Instance.ActiveChannels.ContainsKey(channelName) == false)
+
+            if (VivoxService.Instance.ActiveChannels.ContainsKey(channelName) == false)
                 return;
-        
+
             Debug.Log($"Setting {channelName.ToUpper()} volume to {volume}");
             VivoxService.Instance.SetChannelVolumeAsync(channelName, volume);
             _statusText.text = $"{channelName.ToUpper()} volume set to {volume}";
         }
-        
+
         #endregion
-    
+
         #region Vivox Microphone related functions
-    
+
         public async void TalkButtonTap()
         {
             Debug.Log($"TalkButtonTap - {_talkToggle.isOn}");
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            {
+                ToggleButtons(false);
+                RequestMicrophonePermission(permission =>
+                {
+                    SetupVoiceChatAsync();
+                });
                 return;
+            }
 
             if (_talkToggle.isOn)
             {
                 ToggleButtons(false);
-                
+
                 // First join the channels if not joined already
                 await JoinGroupChannelAsync(TeamChannelName);
-            
+
                 // Set transmission mode to single
                 await SetTransmissionMode(TransmissionMode.Single, TeamChannelName);
-            
+
                 _talkToggle.isOn = true;
                 _muteToggle.isOn = false;
-                
+
                 ToggleButtons(true);
             }
         }
-    
+
         public void MuteMicrophoneButtonTap()
         {
             Debug.Log($"MuteMicrophoneButtonTap - {_muteToggle.isOn}");
-            
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            {
+                ToggleButtons(false);
+                RequestMicrophonePermission(permission =>
+                {
+                    SetupVoiceChatAsync();
+                });
+                return;
+            }
+
             if (_muteToggle.isOn)
             {
                 // If we want to mute microphone, set transmission mode to none
                 SetTransmissionMode(TransmissionMode.None, null);
-                
+
                 _talkToggle.isOn = false;
                 _muteToggle.isOn = true;
             }
         }
-    
+
         private async Task SetTransmissionMode(TransmissionMode mode, string channelName)
         {
-            if(VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
+            if (VivoxService.Instance == null || VivoxService.Instance.IsLoggedIn == false)
                 return;
-        
+
             _statusText.text = $"Setting TransmissionMode to {mode}  in {channelName} channel...";
             await VivoxService.Instance.SetChannelTransmissionModeAsync(mode, channelName);
             //VivoxService.Instance.MuteInputDevice();
@@ -210,7 +241,7 @@ namespace Black.VoiceChat
         }
 
         #endregion
-    
+
         #region VivoxService Events
 
         private void VivoxServiceOnParticipantAddedToChannel(VivoxParticipant obj)
@@ -218,18 +249,18 @@ namespace Black.VoiceChat
             _statusText.text = $"Participant {obj.DisplayName} joined channel {obj.ChannelName}";
             _allChannelParticipants.Add(obj);
         }
-    
+
         private void VivoxServiceOnParticipantRemovedFromChannel(VivoxParticipant obj)
         {
             _statusText.text = $"Participant {obj.DisplayName} left channel {obj.ChannelName}";
             _allChannelParticipants.Remove(obj);
         }
-    
+
         private void VivoxServiceOnLoggedIn()
         {
             Debug.Log("Logged in to Vivox");
         }
-    
+
         private void VivoxServiceOnLoggedOut()
         {
             Debug.Log("Logged out of Vivox");
@@ -248,7 +279,7 @@ namespace Black.VoiceChat
                 callback?.Invoke(Permission.Microphone);
                 return;
             }
-        
+
             _permissionCallback = callback;
 
             var callbacks = new PermissionCallbacks();
@@ -281,7 +312,7 @@ namespace Black.VoiceChat
         }
 
         #endregion
-    
+
         #region Misc functions
 
         private void ToggleButtons(bool enable)
@@ -289,26 +320,26 @@ namespace Black.VoiceChat
             _talkToggle.interactable = enable;
             _muteToggle.interactable = enable;
         }
-    
+
         public void LogActiveChannels()
         {
-            if(VivoxService.Instance == null)
+            if (VivoxService.Instance == null)
                 return;
-        
+
             StringBuilder logString = new StringBuilder();
-        
+
             logString.AppendLine($"Active channels: {VivoxService.Instance.ActiveChannels.Count}");
             foreach (var channel in VivoxService.Instance.ActiveChannels)
             {
                 logString.AppendLine($"Channel: {channel.Key}");
             }
-        
+
             logString.AppendLine($"Transmitting channels: {VivoxService.Instance.TransmittingChannels.Count}");
-            foreach(var channel in VivoxService.Instance.TransmittingChannels)
+            foreach (var channel in VivoxService.Instance.TransmittingChannels)
             {
                 logString.AppendLine($"Channel: {channel}");
             }
-        
+
             Debug.Log(logString.ToString());
             _logText.SetText(logString.ToString());
         }

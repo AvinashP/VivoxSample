@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Black.VoiceChat
 {
@@ -14,8 +15,10 @@ namespace Black.VoiceChat
         }
 
         public static string CurrentTeamChannelName;
+        public static bool AskPermissionOnLoad = false;
 
         [SerializeField] private TMP_InputField _channelNameInputField;
+        [SerializeField] private Toggle _askPermissionToggle;
 
         // Start is called before the first frame update
         void Start()
@@ -29,6 +32,7 @@ namespace Black.VoiceChat
                 return;
             
             CurrentTeamChannelName = _channelNameInputField.text;
+            AskPermissionOnLoad = _askPermissionToggle.isOn;
 
             SceneManager.LoadSceneAsync("SingleChannelScene");
         }
